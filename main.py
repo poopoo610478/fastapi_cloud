@@ -10,7 +10,7 @@ print("=== 雲端版：SQLite FastAPI 已啟動 ===")
 
 app = FastAPI(title="User CRUD System (Cloud / SQLite)")
 
-# ========== CORS ==========
+# === CORS 設定 ===
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,11 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ========== 靜態檔案 ==========
+# === 靜態檔案 ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(BASE_DIR, "static")),
+    name="static",
+)
 
-# ========== SQLite 資料庫 ==========
+# === SQLite 設定 ===
 DB_PATH = os.path.join(BASE_DIR, "fastapi.db")
 
 def get_connection():
@@ -34,35 +38,51 @@ def get_connection():
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("""
+
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS users_fastapi (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            name  TEXT,
             email TEXT
         )
-    """)
+        """
+    )
+
     conn.commit()
     cur.close()
     conn.close()
 
 
-# ========== 首頁 ==========
+# 🚀🚀🚀 關鍵：Railway 啟動時初始化資料庫
+@app.on_event("startup")
+def startup_event():
+    print("=== 初始化 SQLite 資料庫 ===")
+    init_db()
+
+
+# === 首頁 ===
 @app.get("/", response_class=HTMLResponse)
 def root():
-    with open(os.path.join(BASE_DIR, "static", "index.html"), "r", encoding="utf-8") as f:
+    with open(
+        os.path.join(BASE_DIR, "static", "index.html"),
+        "r",
+        encoding="utf-8",
+    ) as f:
         return f.read()
 
 
-# ========== CRUD ==========
+# === CRUD APIs ===
 @app.get("/users/")
 def get_users():
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT id, name, email FROM users_fastapi ORDER BY id")
     rows = cur.fetchall()
+    data = [{"id": r["id"], "name": r["name"], "email": r["email"]} for r in rows]
     cur.close()
     conn.close()
-    return [{"id": r["id"], "name": r["name"], "email": r["email"]} for r in rows]
+    return data
 
 
 @app.get("/users/{user_id}")
@@ -73,16 +93,21 @@ def get_user(user_id: int):
     row = cur.fetchone()
     cur.close()
     conn.close()
-    if row:
-        return {"id": row["id"], "name": row["name"], "email": row["email"]}
-    raise HTTPException(status_code=404, detail="使用者不存在")
+
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"id": row["id"], "name": row["name"], "email": row["email"]}
 
 
 @app.post("/users/")
 def create_user(name: str = Form(...), email: str = Form(...)):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("INSERT INTO users_fastapi (name, email) VALUES (?, ?)", (name, email))
+    cur.execute(
+        "INSERT INTO users_fastapi (name, email) VALUES (?, ?)",
+        (name, email),
+    )
     conn.commit()
     cur.close()
     conn.close()
@@ -93,7 +118,10 @@ def create_user(name: str = Form(...), email: str = Form(...)):
 def update_user(user_id: int, name: str = Form(...), email: str = Form(...)):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("UPDATE users_fastapi SET name=?, email=? WHERE id=?", (name, email, user_id))
+    cur.execute(
+        "UPDATE users_fastapi SET name=?, email=? WHERE id=?",
+        (name, email, user_id),
+    )
     conn.commit()
     cur.close()
     conn.close()
@@ -116,14 +144,18 @@ def search_users(keyword: str):
     conn = get_connection()
     cur = conn.cursor()
     kw = f"%{keyword}%"
-    cur.execute("SELECT id, name, email FROM users_fastapi WHERE name LIKE ? OR email LIKE ?", (kw, kw))
+    cur.execute(
+        "SELECT id, name, email FROM users_fastapi WHERE name LIKE ? OR email LIKE ?",
+        (kw, kw),
+    )
     rows = cur.fetchall()
+    data = [{"id": r["id"], "name": r["name"], "email": r["email"]} for r in rows]
     cur.close()
     conn.close()
-    return [{"id": r["id"], "name": r["name"], "email": r["email"]} for r in rows]
+    return data
 
 
-# ========== 啟動 ==========
+# 本機測試入口
 if __name__ == "__main__":
     init_db()
     import uvicorn
