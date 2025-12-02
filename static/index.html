@@ -45,41 +45,9 @@
             background-color: #d9534f;
         }
         .btn-danger:hover { background-color: #b52b27; }
-
-        #browser-warning {
-            display: none;
-            background-color: #ffcccc;
-            color: #900;
-            border: 1px solid #d00;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            width: 90%;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
-
-    <div id="browser-warning">
-        ⚠️ 您目前使用的是舊版瀏覽器（IE 或傳統 Edge），
-        此網站部分功能將無法正常運作。<br>
-        👉 建議使用 <strong>Google Chrome</strong> 或 <strong>新版 Microsoft Edge</strong>。
-    </div>
-
-    <!-- API 文件與測試 -->
-    <div style="background:#f0f8ff; border:1px solid #ccc; padding:15px; border-radius:8px; width:90%;">
-        <h2>🔧 API 文件與測試</h2>
-        <button onclick="window.open('/docs', '_blank')" 
-                style="background-color:#007bff; color:white; border:none; border-radius:4px; padding:8px 12px; cursor:pointer;">
-            Swagger UI - 互動式 API 測試
-        </button>
-        <button onclick="window.open('/redoc', '_blank')" 
-                style="background-color:#28a745; color:white; border:none; border-radius:4px; padding:8px 12px; cursor:pointer; margin-left:10px;">
-            ReDoc - API 文件閱讀
-        </button>
-    </div>
-    <br>
 
     <h1>FastAPI 使用者 CRUD 系統</h1>
 
@@ -106,111 +74,105 @@
 
     <div id="result"></div>
 
-    <script>
-        // 🚀🚀🚀 Railway 後端網址：使用相對路徑即可
-        const BASE_URL = "";
+<script>
+    // 🚀 Railway 不需要 BASE_URL，全部用相對路徑即可！
 
-        // 🔎 新增：瀏覽器偵測
-        function detectBrowser() {
-            const ua = window.navigator.userAgent;
-            const isIE = ua.indexOf('MSIE ') > -1 || ua.indexOf('Trident/') > -1;
-            const isOldEdge = ua.indexOf('Edge/') > -1 && ua.indexOf('Edg/') === -1;
-            if (isIE || isOldEdge) {
-                document.getElementById("browser-warning").style.display = "block";
-            }
-        }
-        detectBrowser();
+    async function fetchUsers() {
+        const res = await fetch(`/users/`);
+        const data = await res.json();
+        renderTable(data);
+    }
 
-        async function fetchUsers() {
-            const res = await fetch(`/users/`);
-            const data = await res.json();
-            renderTable(data);
-        }
+    async function getUser() {
+        const id = document.getElementById("getUserId").value;
+        if (!id) return alert("請輸入 ID！");
+        const res = await fetch(`/users/${id}`);
+        const data = await res.json();
+        renderTable([data]);
+    }
 
-        async function getUser() {
-            const id = document.getElementById("getUserId").value;
-            if (!id) return alert("請輸入 ID！");
-            const res = await fetch(`/users/${id}`);
-            const data = await res.json();
-            renderTable([data]);
-        }
+    async function searchUsers() {
+        const kw = document.getElementById("searchKeyword").value.trim();
+        if (!kw) return alert("請輸入關鍵字！");
+        const res = await fetch(`/search/?keyword=${encodeURIComponent(kw)}`);
+        const data = await res.json();
+        renderTable(data);
+    }
 
-        async function searchUsers() {
-            const kw = document.getElementById("searchKeyword").value.trim();
-            if (!kw) return alert("請輸入關鍵字！");
-            const res = await fetch(`/search/?keyword=${encodeURIComponent(kw)}`);
-            const data = await res.json();
-            renderTable(data);
-        }
+    document.getElementById("createForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch(`/users/`, { method: "POST", body: formData });
+        const msg = await res.json();
+        alert(msg.message);
+        e.target.reset();
+        fetchUsers();
+    });
 
-        document.getElementById("createForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const res = await fetch(`/users/`, { method: "POST", body: formData });
-            const msg = await res.json();
-            alert(msg.message);
-            e.target.reset();
-            fetchUsers();
-        });
+    function editUser(id, name, email) {
+        document.getElementById("userId").value = id;
+        document.getElementById("userName").value = name;
+        document.getElementById("userEmail").value = email;
+        document.getElementById("updateBtn").style.display = "inline-block";
+    }
 
-        function editUser(id, name, email) {
-            document.getElementById("userId").value = id;
-            document.getElementById("userName").value = name;
-            document.getElementById("userEmail").value = email;
-            document.getElementById("updateBtn").style.display = "inline-block";
-        }
+    async function confirmUpdate() {
+        const id = document.getElementById("userId").value;
+        const name = document.getElementById("userName").value;
+        const email = document.getElementById("userEmail").value;
+        if (!id || !name || !email) return alert("請填寫完整資訊！");
 
-        async function confirmUpdate() {
-            const id = document.getElementById("userId").value;
-            const name = document.getElementById("userName").value;
-            const email = document.getElementById("userEmail").value;
-            if (!id || !name || !email) return alert("請填寫完整資訊！");
-            const formData = new FormData();
-            formData.append("name", name);
-            formData.append("email", email);
-            const res = await fetch(`/users/${id}`, { method: "PUT", body: formData });
-            const msg = await res.json();
-            alert(msg.message);
-            document.getElementById("createForm").reset();
-            document.getElementById("updateBtn").style.display = "none";
-            fetchUsers();
-        }
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("email", email);
 
-        async function deleteUser(id) {
-            if (!confirm(`確定要刪除 ID=${id} 的使用者嗎？`)) return;
-            const res = await fetch(`/users/${id}`, { method: "DELETE" });
-            const msg = await res.json();
-            alert(msg.message);
-            fetchUsers();
+        const res = await fetch(`/users/${id}`, { method: "PUT", body: formData });
+        const msg = await res.json();
+        alert(msg.message);
+
+        document.getElementById("createForm").reset();
+        document.getElementById("updateBtn").style.display = "none";
+        fetchUsers();
+    }
+
+    async function deleteUser(id) {
+        if (!confirm(`確定要刪除 ID=${id} 的使用者嗎？`)) return;
+        const res = await fetch(`/users/${id}`, { method: "DELETE" });
+        const msg = await res.json();
+        alert(msg.message);
+        fetchUsers();
+    }
+
+    function renderTable(data) {
+        if (!data || data.length === 0) {
+            document.getElementById("result").innerHTML = "<p style='color:red;'>查無資料。</p>";
+            return;
         }
 
-        function renderTable(data) {
-            if (!data || data.length === 0) {
-                document.getElementById("result").innerHTML = "<p style='color:red;'>查無資料。</p>";
-                return;
-            }
+        let html = `
+        <table>
+            <thead>
+                <tr><th>ID</th><th>姓名</th><th>Email</th><th>操作</th></tr>
+            </thead>
+            <tbody>`;
 
-            let html = `
-            <table>
-                <thead>
-                    <tr><th>ID</th><th>姓名</th><th>Email</th><th>操作</th></tr>
-                </thead>
-                <tbody>`;
-            for (const row of data) {
-                html += `
-                    <tr>
-                        <td>${row.id}</td>
-                        <td>${row.name}</td>
-                        <td>${row.email}</td>
-                        <td>
-                            <button class="btn" style="background-color:#f0ad4e;" onclick="editUser(${row.id}, '${row.name}', '${row.email}')">修改</button>
-                            <button class="btn btn-danger" onclick="deleteUser(${row.id})">刪除</button>
-                        </td>
-                    </tr>`;
-            }
-            html += "</tbody></table>";
-            document.getElementById("result").innerHTML = html;
+        for (const row of data) {
+            html += `
+            <tr>
+                <td>${row.id}</td>
+                <td>${row.name}</td>
+                <td>${row.email}</td>
+                <td>
+                    <button class="btn" style="background-color:#f0ad4e;" onclick="editUser(${row.id}, '${row.name}', '${row.email}')">修改</button>
+                    <button class="btn btn-danger" onclick="deleteUser(${row.id})">刪除</button>
+                </td>
+            </tr>`;
         }
-    </script>
+
+        html += "</tbody></table>";
+        document.getElementById("result").innerHTML = html;
+    }
+</script>
+
 </body>
 </html>
