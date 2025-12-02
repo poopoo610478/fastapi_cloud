@@ -46,7 +46,6 @@
         }
         .btn-danger:hover { background-color: #b52b27; }
 
-        /* 🔴 新增：瀏覽器警告樣式 */
         #browser-warning {
             display: none;
             background-color: #ffcccc;
@@ -62,7 +61,6 @@
 </head>
 <body>
 
-    <!-- 🔴 新增：瀏覽器偵測警告 -->
     <div id="browser-warning">
         ⚠️ 您目前使用的是舊版瀏覽器（IE 或傳統 Edge），
         此網站部分功能將無法正常運作。<br>
@@ -83,136 +81,4 @@
     </div>
     <br>
 
-    <h1>FastAPI 使用者 CRUD 系統</h1>
-
-    <div class="section">
-        <h3>使用者資料</h3>
-        <form id="createForm">
-            ID：<input type="number" id="userId" name="id" placeholder="修改時自動填入">
-            姓名：<input type="text" name="name" id="userName" required>
-            Email：<input type="email" name="email" id="userEmail" required>
-            <button type="submit" class="btn">新增</button>
-            <button type="button" id="updateBtn" class="btn" style="background-color:#17a2b8; display:none;" onclick="confirmUpdate()">確認更新</button>
-        </form>
-    </div>
-
-    <div class="query-section">
-        <div class="query-box">
-            <button onclick="fetchUsers()" class="btn">查詢所有使用者</button>
-            ID：<input type="number" id="getUserId" min="1" placeholder="查詢單一使用者">
-            <button onclick="getUser()" class="btn">查詢</button>
-            搜尋：<input type="text" id="searchKeyword" placeholder="依姓名或Email">
-            <button onclick="searchUsers()" class="btn">搜尋</button>
-        </div>
-    </div>
-
-    <div id="result"></div>
-
-    <script>
-        const BASE_URL = "http://10.16.60.4:8000";
-
-        // 🔎 新增：瀏覽器偵測
-        function detectBrowser() {
-            const ua = window.navigator.userAgent;
-            const isIE = ua.indexOf('MSIE ') > -1 || ua.indexOf('Trident/') > -1;
-            const isOldEdge = ua.indexOf('Edge/') > -1 && ua.indexOf('Edg/') === -1;
-            if (isIE || isOldEdge) {
-                document.getElementById("browser-warning").style.display = "block";
-            }
-        }
-        detectBrowser();
-
-        // === 主要功能 ===
-        async function fetchUsers() {
-            const res = await fetch(`${BASE_URL}/users/`);
-            const data = await res.json();
-            renderTable(data);
-        }
-
-        async function getUser() {
-            const id = document.getElementById("getUserId").value;
-            if (!id) return alert("請輸入 ID！");
-            const res = await fetch(`${BASE_URL}/users/${id}`);
-            const data = await res.json();
-            renderTable([data]);
-        }
-
-        async function searchUsers() {
-            const kw = document.getElementById("searchKeyword").value.trim();
-            if (!kw) return alert("請輸入關鍵字！");
-            const res = await fetch(`${BASE_URL}/search/?keyword=${encodeURIComponent(kw)}`);
-            const data = await res.json();
-            renderTable(data);
-        }
-
-        document.getElementById("createForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const res = await fetch(`${BASE_URL}/users/`, { method: "POST", body: formData });
-            const msg = await res.json();
-            alert(msg.message);
-            e.target.reset();
-            fetchUsers();
-        });
-
-        function editUser(id, name, email) {
-            document.getElementById("userId").value = id;
-            document.getElementById("userName").value = name;
-            document.getElementById("userEmail").value = email;
-            document.getElementById("updateBtn").style.display = "inline-block";
-        }
-
-        async function confirmUpdate() {
-            const id = document.getElementById("userId").value;
-            const name = document.getElementById("userName").value;
-            const email = document.getElementById("userEmail").value;
-            if (!id || !name || !email) return alert("請填寫完整資訊！");
-            const formData = new FormData();
-            formData.append("name", name);
-            formData.append("email", email);
-            const res = await fetch(`${BASE_URL}/users/${id}`, { method: "PUT", body: formData });
-            const msg = await res.json();
-            alert(msg.message);
-            document.getElementById("createForm").reset();
-            document.getElementById("updateBtn").style.display = "none";
-            fetchUsers();
-        }
-
-        async function deleteUser(id) {
-            if (!confirm(`確定要刪除 ID=${id} 的使用者嗎？`)) return;
-            const res = await fetch(`${BASE_URL}/users/${id}`, { method: "DELETE" });
-            const msg = await res.json();
-            alert(msg.message);
-            fetchUsers();
-        }
-
-        function renderTable(data) {
-            if (!data || data.length === 0) {
-                document.getElementById("result").innerHTML = "<p style='color:red;'>查無資料。</p>";
-                return;
-            }
-
-            let html = `
-            <table>
-                <thead>
-                    <tr><th>ID</th><th>姓名</th><th>Email</th><th>操作</th></tr>
-                </thead>
-                <tbody>`;
-            for (const row of data) {
-                html += `
-                    <tr>
-                        <td>${row.id}</td>
-                        <td>${row.name}</td>
-                        <td>${row.email}</td>
-                        <td>
-                            <button class="btn" style="background-color:#f0ad4e;" onclick="editUser(${row.id}, '${row.name}', '${row.email}')">修改</button>
-                            <button class="btn btn-danger" onclick="deleteUser(${row.id})">刪除</button>
-                        </td>
-                    </tr>`;
-            }
-            html += "</tbody></table>";
-            document.getElementById("result").innerHTML = html;
-        }
-    </script>
-</body>
-</html>
+    <h1>FastAPI 使用者 CRUD 系統</h
